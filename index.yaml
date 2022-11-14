@@ -1,0 +1,25 @@
+apiVersion: v1
+entries:
+  mysql:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2022-11-14T05:37:05.9245143+05:30"
+    description: A Helm chart for Kubernetes
+    digest: 2200fad7e1315d8f153847fa66de98a608a228fdb95088e05b91f4ec1d58b6be
+    name: mysql
+    type: application
+    urls:
+    - mysql-0.1.0.tgz
+    version: 0.1.0
+  nginx:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2022-11-14T05:37:05.9250673+05:30"
+    description: A Helm chart for Kubernetes
+    digest: f4a2e0b76185134d6fad7b2ffb07cf9505a8a5d9d2bb984e5bb535360b041768
+    name: nginx
+    type: application
+    urls:
+    - nginx-0.1.0.tgz
+    version: 0.1.0
+generated: "2022-11-14T05:37:05.9239575+05:30"
