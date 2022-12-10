@@ -1,0 +1,32 @@
+{{- $i := untilStep (int 0) (int .Values.replicaCount) (int 1) -}}
+{{- $j := untilStep (int 0) (int .Values.replicaCount) (int 1) -}}
+{{- $zooport := (int .Values.zooPort) -}}
+{{- $transactport := (int .Values.transactionPort) -}}
+{{- $leaderport := (int .Values.leaderElectionPort) -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zookeeper-configmap
+data:
+{{ printf "" | indent 4 }}
+{{- range $index, $replica := $i -}}
+  zookeeper_server_id_{{ add1 $replica }}: {{ add1 $replica | quote }}
+    {{- $servers := "" }}
+    {{- $transactionport := $transactport }}    
+    {{- $leaderelectionport := $leaderport }}
+    {{- range $index1, $replica1 := $j }}          
+            {{- if eq $replica $replica1}}
+               {{- $servers = print $servers "0.0.0.0:" $transactionport ":" $leaderelectionport "," -}}
+            {{- else }}
+                {{- $servers = print $servers "zookeeper-statefulset-0:" $transactionport ":" $leaderelectionport ","  -}}
+            {{- end }}
+            {{- $transactionport = add1 $transactionport }}    
+            {{- $leaderelectionport = add1 $leaderelectionport }}
+    {{- end }}
+    {{- $length := len $servers}}
+    {{- $length := sub $length 1}}  
+    zookeeper_servers_{{ add1 $replica }}: {{ substr 0 ($length | int) $servers | quote }}
+    zookeeper_port_{{ add1 $replica }}: {{ $zooport | quote }}
+    {{- $zooport = add1 $zooport}}  
+    {{ printf ""}}
+{{- end }}

@@ -1,0 +1,75 @@
+{{- $i := untilStep (int 0) (int .Values.replicaCount) (int 1) -}}
+{{- $imagetag := .Values.imageTag -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zookeeper-statefulset
+  labels:
+    app: zookeeper-statefulset
+spec:
+  replicas: 1
+  serviceName: zookeeper-service
+  selector:
+    matchLabels:
+      app: zookeeper-statefulset
+  template:
+    metadata:
+      labels:
+        app: zookeeper-statefulset
+    spec:
+      containers:
+{{- range $index, $replica := $i }}
+      - name: zookeeper-{{ $replica }}
+        image: bitnami/zookeeper:{{ $imagetag }}
+        env:
+        - name: ZOO_SERVER_ID
+          valueFrom:
+            configMapKeyRef:
+              name: zookeeper-configmap
+              key: zookeeper_server_id_{{ add1 $replica }}
+        - name: ZOO_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              name: zookeeper-configmap
+              key: zookeeper_servers_{{ add1 $replica }}
+        - name: ZOO_PORT_NUMBER
+          valueFrom:
+            configMapKeyRef:
+              name: zookeeper-configmap
+              key: zookeeper_port_{{ add1 $replica }}
+        - name: ALLOW_ANONYMOUS_LOGIN
+          value: "yes"
+    {{ printf "" | indent 7 }}
+{{- end }}
+  volumeClaimTemplates:
+  - metadata:
+      name: zookeeper-vct
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "standard"
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper-service
+spec:
+  selector:
+    app: zookeeper-statefulset
+  clusterIP: None
+  ports:
+    - protocol: TCP
+      name: zookeeper-port
+      port: 2181
+      targetPort: 2181
+    - protocol: TCP
+      name: zookeeper-trans
+      port: 2888
+      targetPort: 2888
+    - protocol: TCP
+      name: zookeeper-lead
+      port: 3888
+      targetPort: 3888
+---
