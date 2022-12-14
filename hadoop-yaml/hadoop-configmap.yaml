@@ -1,0 +1,25 @@
+apiVersion: v1
+data:
+  namenode_url_for_datanode: hdfs://hadoophdfsyarn-namenode-resourcemanager:8020
+  namenode_bind_url: hdfs://0.0.0.0:8020
+  dfs_namenode_rpc___bind___host: 0.0.0.0
+  dfs_namenode_servicerpc___bind___host: 0.0.0.0
+  dfs_namenode_http___bind___host: 0.0.0.0
+  dfs_namenode_https___bind___host: 0.0.0.0
+  dfs_client_use_datanode_hostname: "false"
+  dfs_datanode_use_datanode_hostname: "true"
+  dfs_datanode_address: 0.0.0.0:9866
+  dfs_datanode_http___address: 0.0.0.0:9864
+  dfs_namenode_http___address: 0.0.0.0:9870
+  dfs_namenode_rpc___address: 0.0.0.0:8020
+  yarn_resourcemanager_bind___host: 0.0.0.0
+  yarn_nodemanager_bind___host: 0.0.0.0
+  yarn_nodemanager_resourcemanager_subscription: hadoophdfsyarn-namenode-resourcemanager:8031
+  yarn_resourcemanager_address: 0.0.0.0:8032
+  yarn_resourcemanager_webapp_address: 0.0.0.0:8088
+  yarn_nodemanager_address: 0.0.0.0:2928
+  yarn_nodemanager_webapp_address: 0.0.0.0:8042
+  dfs_permission: "false"
+kind: ConfigMap
+metadata:
+  name: hadoop-configmap
