@@ -14,7 +14,7 @@ data:
     OR CONDITIONS OF ANY KIND, either express or implied.\n  See the License for the
     specific language governing permissions and\n  limitations under the License.
     See accompanying LICENSE file.\n-->\n\n<!-- Put site-specific property overrides
-    in this file. -->\n\n<configuration>\n\t<property>\n\t\t<name>dfs.replication</name>\n\t\t<value>1</value>\n\t</property>\n\t<property>\n\t\t<name>dfs.namenode.datanode.registration.ip-hostname-check</name>\n\t\t<value>false</value>\n\t</property>\n</configuration>\n"
+    in this file. -->\n\n<configuration>\n\t<property>\n\t\t<name>dfs.replication</name>\n\t\t<value>3</value>\n\t</property>\n\t<property>\n\t\t<name>dfs.namenode.datanode.registration.ip-hostname-check</name>\n\t\t<value>false</value>\n\t</property>\n</configuration>\n"
 kind: ConfigMap
 metadata:
   creationTimestamp: null
