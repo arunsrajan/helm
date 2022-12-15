@@ -7,7 +7,7 @@ spec:
     matchLabels:
       app: sparkhdfs-worker-datanode # has to match .spec.template.metadata.labels
   serviceName: "sparkhdfs-worker-datanode"
-  replicas: 3 # by default is 1
+  replicas: 2 # by default is 1
   minReadySeconds: 120 # by default is 0
   template:
     metadata:
@@ -22,7 +22,13 @@ spec:
       containers:
       - image: gradiant/hdfs-datanode
         name: hdfs-datanode
-        resources: {}
+        resources:
+           requests:
+            memory: "1Gi"
+            cpu: "500m"
+           limits:
+            memory: "1Gi"
+            cpu: "800m"
         env:
         - name: CORE_CONF_fs_defaultFS
           valueFrom:
@@ -35,7 +41,13 @@ spec:
               subPath: hdfs-site.xml
       - image: bitnami/spark:3.3.1
         name: bitnami-spark-worker
-        resources: {}
+        resources:
+           requests:
+            memory: "2Gi"
+            cpu: "500m"
+           limits:
+            memory: "2Gi"
+            cpu: "800m"
         ports:
         - containerPort: 8081
           name: spark-ui
@@ -98,7 +110,13 @@ spec:
       containers:
       - image: gradiant/hdfs-namenode
         name: hdfs-namenode
-        resources: {}
+        resources:
+           requests:
+            memory: "1Gi"
+            cpu: "500m"
+           limits:
+            memory: "1Gi"
+            cpu: "800m"
         env:
         - name: CORE_CONF_fs_defaultFS
           valueFrom:
@@ -109,11 +127,17 @@ spec:
             - mountPath: /opt/hadoop/etc/hadoop/hdfs-site.xml
               name: spark-hdfs-configmap
               subPath: hdfs-site.xml
-            - mountPath: /1987
+            - mountPath: /dataset
               name: hadoop-dataset
       - image: bitnami/spark:3.3.1
         name: bitnami-spark-master
-        resources: {}
+        resources:
+           requests:
+            memory: "1Gi"
+            cpu: "500m"
+           limits:
+            memory: "1Gi"
+            cpu: "800m"
         ports:
         - containerPort: 7077
           name: spark-protocol
@@ -134,6 +158,9 @@ spec:
             configMapKeyRef:
               name: spark-hdfs-configmap
               key: sparkmasterurl
+        volumeMounts:
+            - mountPath: /dataset
+              name: hadoop-dataset
   volumeClaimTemplates:
   - metadata:
       name: sparkhdfs-master
