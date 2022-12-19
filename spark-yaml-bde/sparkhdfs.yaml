@@ -1,0 +1,286 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: hadoop-dataset-sparkhdfs-master-namenode
+spec:
+  storageClassName: standard
+  capacity:
+    storage: 12Gi
+  volumeMode: Filesystem
+  accessModes:
+      - ReadWriteOnce
+  hostPath:
+    path: "/dataset"
+  claimRef:
+    name: hadoop-dataset-sparkhdfs-master-namenode-0
+    namespace: default
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sparkhdfs-worker-datanode
+spec:
+  selector:
+    app: sparkhdfs-worker-datanode
+  clusterIP: None
+  ports:
+    - protocol: TCP
+      name: sparkworker
+      port: 8081
+      targetPort: 8081
+    - protocol: TCP
+      name: datanode-protocol
+      port: 9866
+      targetPort: 9866
+    - protocol: TCP
+      name: datanode-ui
+      port: 9864
+      targetPort: 9864
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sparkhdfs-master-namenode
+spec:
+  selector:
+    app: sparkhdfs-master-namenode
+  clusterIP: None
+  ports:
+    - protocol: TCP
+      name: sparkmasterui
+      port: 8080
+      targetPort: 8080
+    - protocol: TCP
+      name: sparkmaster
+      port: 7077
+      targetPort: 7077
+    - protocol: TCP
+      name: namenode-ui
+      port: 9870
+      targetPort: 9870
+    - protocol: TCP
+      name: namenode-protocol
+      port: 8020
+      targetPort: 8020
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sparkhdfs-worker-datanode
+spec:
+  selector:
+    matchLabels:
+      app: sparkhdfs-worker-datanode # has to match .spec.template.metadata.labels
+  serviceName: "sparkhdfs-worker-datanode"
+  replicas: 1 # by default is 1
+  minReadySeconds: 120 # by default is 0
+  template:
+    metadata:
+      labels:
+        app: sparkhdfs-worker-datanode # has to match .spec.selector.matchLabels
+    spec:
+      volumes:
+        - name: sparkhdfs-configmap
+          configMap:
+            name: sparkhdfs-configmap
+      terminationGracePeriodSeconds: 120
+      containers:
+      - image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+        name: hadoop-datanode
+        resources:
+           requests:
+            memory: "3Gi"
+            cpu: "500m"
+           limits:
+            memory: "3Gi"
+            cpu: "1000m"
+        ports:
+        - containerPort: 9864
+          name: datanode-ui
+        - containerPort: 9866
+          name: datanode-proto
+        env:
+        - name: CORE_CONF_fs_defaultFS
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: namenode_url_for_datanode
+        - name: HDFS_CONF_dfs_datanode_address
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: dfs_datanode_address
+        - name: HDFS_CONF_dfs_datanode_http___address
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: dfs_datanode_http___address
+        - name: HDFS_CONF_dfs_datanode_http___address
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: dfs_datanode_http___address
+        - name: HDFS_CONF_dfs_datanode_use_datanode_hostname
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: dfs_datanode_use_datanode_hostname
+        - name: HDFS_CONF_dfs_permissions_enabled
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: dfs_permission
+        - name: HDFS_CONF_dfs_datanode_data_dir
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: dfs_datanode_data_dir
+        - name: HDFS_CONF_dfs_namenode_datanode_registration_ip___hostname___check
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: dfs_namenode_datanode_registration_ip___hostname___check
+      - image: bitnami/spark:3.3.1
+        name: bitnami-spark-worker
+        resources:
+           requests:
+            memory: "3Gi"
+            cpu: "500m"
+           limits:
+            memory: "3Gi"
+            cpu: "2000m"
+        ports:
+        - containerPort: 8081
+          name: spark-ui
+        env:
+        - name: SPARK_MODE
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: sparkmodeworker
+        - name: SPARK_MASTER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: sparkmasterurl
+  volumeClaimTemplates:
+  - metadata:
+      name: sparkhdfs-worker
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "standard"
+      resources:
+        requests:
+          storage: 4Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sparkhdfs-master-namenode
+spec:
+  selector:
+    matchLabels:
+      app: sparkhdfs-master-namenode # has to match .spec.template.metadata.labels
+  serviceName: "sparkhdfs-master-namenode"
+  replicas: 1 # by default is 1
+  minReadySeconds: 120 # by default is 0
+  template:
+    metadata:
+      labels:
+        app: sparkhdfs-master-namenode # has to match .spec.selector.matchLabels
+    spec:
+      volumes:
+        - name: sparkhdfs-configmap
+          configMap:
+            name: sparkhdfs-configmap
+      terminationGracePeriodSeconds: 120
+      containers:
+      - image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+        name: hadoop-namenode
+        resources:
+           requests:
+            memory: "3Gi"
+            cpu: "500m"
+           limits:
+            memory: "3Gi"
+            cpu: "2000m"
+        ports:
+        - containerPort: 8020
+          name: namenode-port
+        - containerPort: 9870
+          name: namenode-ui
+        env:
+        - name: HDFS_CONF_dfs_permissions_enabled
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: dfs_permission
+        - name: HDFS_CONF_dfs_namenode_name_dir
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: dfs_namenode_name_dir
+        - name: CORE_CONF_fs_defaultFS
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: namenode_bind_url
+        - name: HDFS_CONF_dfs_namenode_datanode_registration_ip___hostname___check
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: dfs_namenode_datanode_registration_ip___hostname___check
+        - name: CLUSTER_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: hadoop_cluster_name
+        volumeMounts:
+            - mountPath: /dataset
+              name: hadoop-dataset
+      - image: bitnami/spark:3.3.1
+        name: bitnami-spark-master
+        resources:
+           requests:
+            memory: "3Gi"
+            cpu: "500m"
+           limits:
+            memory: "3Gi"
+            cpu: "1000m"
+        ports:
+        - containerPort: 7077
+          name: spark-protocol
+        - containerPort: 8080
+          name: spark-ui
+        env:
+        - name: SPARK_MODE
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: sparkmodemaster
+        - name: SPARK_MASTER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: sparkhdfs-configmap
+              key: sparkmasterurl
+        volumeMounts:
+            - mountPath: /dataset
+              name: hadoop-dataset
+  volumeClaimTemplates:
+  - metadata:
+      name: sparkhdfs-master
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "standard"
+      resources:
+        requests:
+          storage: 4Gi
+  - metadata:
+      name: hadoop-dataset
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "standard"
+      resources:
+        requests:
+          storage: 12Gi
+---

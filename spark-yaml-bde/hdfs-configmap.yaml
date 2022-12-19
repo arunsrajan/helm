@@ -1,0 +1,25 @@
+apiVersion: v1
+data:
+  sparkmodeworker: worker
+  sparkmodemaster: master
+  namenode_url_for_datanode: hdfs://sparkhdfs-master-namenode:8020
+  namenode_bind_url: hdfs://sparkhdfs-master-namenode-0.sparkhdfs-master-namenode.default.svc.cluster.local:8020
+  sparkmasterurl: spark://sparkhdfs-master-namenode:7077
+  dfs_namenode_rpc___bind___host: 0.0.0.0
+  dfs_namenode_servicerpc___bind___host: 0.0.0.0
+  dfs_namenode_http___bind___host: 0.0.0.0
+  dfs_namenode_https___bind___host: 0.0.0.0
+  dfs_client_use_datanode_hostname: "false"
+  dfs_datanode_use_datanode_hostname: "true"
+  dfs_datanode_address: 0.0.0.0:9866
+  dfs_datanode_http___address: 0.0.0.0:9864
+  dfs_namenode_http___address: 0.0.0.0:9870
+  dfs_namenode_rpc___address: 0.0.0.0:8020
+  dfs_permission: "false"
+  dfs_datanode_data_dir: /hadoop/dfs/data
+  dfs_namenode_name_dir: /hadoop/dfs/name
+  dfs_namenode_datanode_registration_ip___hostname___check: "false"
+  hadoop_cluster_name: test
+kind: ConfigMap
+metadata:
+  name: sparkhdfs-configmap
