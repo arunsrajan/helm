@@ -1,93 +1,53 @@
-apiVersion: apps/v1
-kind: StatefulSet
+apiVersion: v1
+kind: PersistentVolume
 metadata:
-  name: hadoophdfsyarn-datanode-nodemanager
+  name: hadoop-dataset-datanode1
 spec:
-  selector:
-    matchLabels:
-      app: hadoophdfsyarn-datanode-nodemanager # has to match .spec.template.metadata.labels
-  serviceName: "hadoophdfsyarn-datanode-nodemanager"
-  replicas: 1 # by default is 1
-  minReadySeconds: 120 # by default is 0
-  template:
-    metadata:
-      labels:
-        app: hadoophdfsyarn-datanode-nodemanager # has to match .spec.selector.matchLabels
-    spec:
-      terminationGracePeriodSeconds: 120
-      containers:
-      - image: colovu/hadoop-datanode:3.3
-        name: hadoop-datanode
-        resources: {}
-        ports:
-        - containerPort: 9864
-          name: datanode-ui
-        - containerPort: 9866
-          name: datanode-proto
-        env:
-        - name: CORE_CONF_fs_defaultFS
-          valueFrom:
-            configMapKeyRef:
-              name: hadoop-configmap
-              key: namenode_url_for_datanode
-        - name: HDFS_CONF_dfs_datanode_address
-          valueFrom:
-            configMapKeyRef:
-              name: hadoop-configmap
-              key: dfs_datanode_address
-        - name: HDFS_CONF_dfs_datanode_http___address
-          valueFrom:
-            configMapKeyRef:
-              name: hadoop-configmap
-              key: dfs_datanode_http___address
-        - name: HDFS_CONF_dfs_datanode_http___address
-          valueFrom:
-            configMapKeyRef:
-              name: hadoop-configmap
-              key: dfs_datanode_http___address
-        - name: HDFS_CONF_dfs_datanode_use_datanode_hostname
-          valueFrom:
-            configMapKeyRef:
-              name: hadoop-configmap
-              key: dfs_datanode_use_datanode_hostname
-        - name: HDFS_CONF_dfs_permission_enabled
-          valueFrom:
-            configMapKeyRef:
-              name: hadoop-configmap
-              key: dfs_permission
-      - image: colovu/hadoop-nodemanager:3.3
-        name: hadoop-nodemanager
-        resources: {}
-        ports:
-        - containerPort: 2928
-          name: nodemanage-port
-        - containerPort: 8042
-          name: nodemanage-ui
-        env:
-        - name: YARN_CONF_yarn_nodemanager_address
-          valueFrom:
-            configMapKeyRef:
-              name: hadoop-configmap
-              key: yarn_nodemanager_address
-        - name: YARN_CONF_yarn_nodemanager_webapp_address
-          valueFrom:
-            configMapKeyRef:
-              name: hadoop-configmap
-              key: yarn_nodemanager_webapp_address
-        - name: YARN_CONF_yarn_resourcemanager_resource___tracker_address
-          valueFrom:
-            configMapKeyRef:
-              name: hadoop-configmap
-              key: yarn_nodemanager_resourcemanager_subscription
-  volumeClaimTemplates:
-  - metadata:
-      name: hadoophdfsyarn-datanode-nodemanager
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: "standard"
-      resources:
-        requests:
-          storage: 1Gi
+  storageClassName: standard
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+      - ReadWriteOnce
+  hostPath:
+    path: "/dataset2"
+  claimRef:
+    name: hadoop-dataset-datanode-hadoophdfsyarn-datanode-nodemanager-1
+    namespace: default
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: hadoop-dataset-namenode
+spec:
+  storageClassName: standard
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+      - ReadWriteOnce
+  hostPath:
+    path: "/dataset1"
+  claimRef:
+    name: hadoop-dataset-namenode-hadoophdfsyarn-namenode-resourcemanager-0
+    namespace: default
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: hadoop-dataset-datanode
+spec:
+  storageClassName: standard
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+      - ReadWriteOnce
+  hostPath:
+    path: "/dataset2"
+  claimRef:
+    name: hadoop-dataset-datanode-hadoophdfsyarn-datanode-nodemanager-0
+    namespace: default
 ---
 apiVersion: v1
 kind: Service
@@ -96,7 +56,7 @@ metadata:
 spec:
   selector:
     app: hadoophdfsyarn-datanode-nodemanager
-  clusterIP: None
+  clusterIP: NodePort
   ports:
     - protocol: TCP
       name: nodemanager-ui
@@ -114,77 +74,6 @@ spec:
       name: datanode-ui
       port: 9864
       targetPort: 9864
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: hadoophdfsyarn-namenode-resourcemanager
-spec:
-  selector:
-    matchLabels:
-      app: hadoophdfsyarn-namenode-resourcemanager
-  serviceName: "hadoophdfsyarn-namenode-resourcemanager"
-  replicas: 1
-  minReadySeconds: 120
-  template:
-    metadata:
-      labels:
-        app: hadoophdfsyarn-namenode-resourcemanager
-    spec:
-      terminationGracePeriodSeconds: 120
-      containers:
-      - image: colovu/hadoop-namenode:3.3
-        name: hadoop-namenode
-        resources: {}
-        ports:
-        - containerPort: 8020
-          name: namenode-port
-        - containerPort: 9870
-          name: namenode-ui
-        env:
-        - name: HDFS_CONF_dfs_permission_enabled
-          valueFrom:
-            configMapKeyRef:
-              name: hadoop-configmap
-              key: dfs_permission
-        - name: CORE_CONF_fs_defaultFS
-          valueFrom:
-            configMapKeyRef:
-              name: hadoop-configmap
-              key: namenode_bind_url
-        volumeMounts:
-            - mountPath: /1987
-              name: hadoop-dataset
-      - image: colovu/hadoop-resourcemanager:3.3
-        name: hadoop-resourcemanager
-        resources: {}
-        ports:
-        - containerPort: 8032
-          name: rm-protocol
-        - containerPort: 8031
-          name: rm-track
-        - containerPort: 8088
-          name: rm-ui
-        env:
-        - name: YARN_CONF_yarn_resourcemanager_address
-          valueFrom:
-            configMapKeyRef:
-              name: hadoop-configmap
-              key: yarn_resourcemanager_address
-        - name: YARN_CONF_yarn_resourcemanager_webapp_address
-          valueFrom:
-            configMapKeyRef:
-              name: hadoop-configmap
-              key: yarn_resourcemanager_webapp_address
-  volumeClaimTemplates:
-  - metadata:
-      name: hadoop-dataset
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: "standard"
-      resources:
-        requests:
-          storage: 1Gi
 ---
 apiVersion: v1
 kind: Service
@@ -216,20 +105,347 @@ spec:
       port: 8088
       targetPort: 8088
 ---
-apiVersion: v1
-kind: PersistentVolume
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
-  name: hadoop-dataset
+  name: hadoophdfsyarn-datanode-nodemanager
+spec:  
+  selector:
+    matchLabels:
+      app: hadoophdfsyarn-datanode-nodemanager # has to match .spec.template.metadata.labels
+  serviceName: "hadoophdfsyarn-datanode-nodemanager"
+  replicas: 1 # by default is 1
+  minReadySeconds: 120 # by default is 0
+  template:
+    metadata:
+      labels:
+        app: hadoophdfsyarn-datanode-nodemanager # has to match .spec.selector.matchLabels
+    spec:      
+      terminationGracePeriodSeconds: 120
+      initContainers:
+      - name: hadoop-mkdir
+        image: bde2020/hadoop-namenode:2.0.0-hadoop3.1.3-java8
+        command: ['sh', '-c', 'mkdir -p /opt/hadoop-3.1.3/dfs/data']
+        volumeMounts:           
+          - mountPath: /opt/hadoop-3.1.3/dfs/data
+            name: workdir
+      volumes:
+      - name: workdir
+        emptyDir: {}
+      containers:
+      - image: bde2020/hadoop-datanode:2.0.0-hadoop3.1.3-java8
+        name: hadoop-datanode
+        resources:
+           requests:
+            memory: "4Gi"
+           limits:
+            memory: "4Gi"
+        ports:
+        - containerPort: 9864
+          name: datanode-ui
+        - containerPort: 9866
+          name: datanode-proto
+        volumeMounts:
+            - mountPath: /dataset2
+              name: hadoop-dataset-datanode
+            - mountPath: /opt/hadoop-3.1.3/dfs/data
+              name: workdir
+        env:
+        - name: APP_USER
+          value: hadoop
+        - name: HDFS_CONF_dfs_datanode_data_dir
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: dfs_datanode_data_dir
+        - name: CORE_CONF_fs_defaultFS
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: namenode_url_for_datanode
+        - name: HDFS_CONF_dfs_datanode_address
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: dfs_datanode_address
+        - name: HDFS_CONF_dfs_datanode_http___address
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: dfs_datanode_http___address
+        - name: HDFS_CONF_dfs_datanode_http___address
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: dfs_datanode_http___address
+        - name: HDFS_CONF_dfs_datanode_use_datanode_hostname
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: dfs_datanode_use_datanode_hostname
+        - name: HDFS_CONF_dfs_permissions_enabled
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: dfs_permission
+        - name: HDFS_CONF_dfs_datanode_failed_volumes_tolerated
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: dfs_datanode_failed_volumes_tolerated
+      - image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.1.3-java8
+        name: hadoop-nodemanager
+        resources:
+           requests:
+            memory: "4Gi"
+           limits:
+            memory: "4Gi"
+        ports:
+        - containerPort: 2928
+          name: nodemanage-port
+        - containerPort: 8042
+          name: nodemanage-ui
+        env:
+        - name: CORE_CONF_fs_defaultFS
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: namenode_url_for_datanode
+        - name: YARN_CONF_yarn_resourcemanager_resource___tracker_address
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: yarn_nodemanager_resourcemanager_subscription
+        - name: YARN_CONF_mapreduce_framework_name
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: mapreduce_framework_name
+        - name: YARN_CONF_yarn_application_classpath
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: yarn_application_classpath
+        - name: YARN_CONF_yarn_nodemanager_hostname
+          valueFrom:
+            fieldRef:
+                fieldPath: status.podIP
+        - name: YARN_CONF_yarn_nodemanager_bind___host
+          valueFrom:
+            fieldRef:
+                fieldPath: status.podIP
+        - name: YARN_CONF_yarn_nodemanager_address
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: yarn_nodemanager_address
+        - name: CORE_CONF_fs_defaultFS
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: namenode_url_for_datanode
+        - name: YARN_CONF_yarn_nodemanager_aux___services
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: yarn_nodemanager_aux___services
+        - name: YARN_CONF_yarn_nodemanager_vmem___check___enabled
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: yarn_nodemanager_vmem___check___enabled
+        - name: YARN_CONF_yarn_nodemanager_vmem___check___enabled
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: yarn_nodemanager_vmem___pmem___ratio
+        - name: MAPRED_CONF_mapreduce_map_java_opts
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: mapreduce_map_java_opts
+        - name: MAPRED_CONF_mapreduce_reduce_java_opts
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: mapreduce_reduce_java_opts
+  volumeClaimTemplates:
+  - metadata:
+      name: hadoop-dataset-datanode
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: ""
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: hadoophdfsyarn-namenode-resourcemanager
 spec:
-  storageClassName: standard
-  capacity:
-    storage: 1Gi
-  volumeMode: Filesystem
-  accessModes:
-      - ReadWriteOnce
-  hostPath:
-    path: "/dataset"
-  claimRef:
-    name: hadoop-dataset-hadoophdfsyarn-namenode-resourcemanager-0
-    namespace: default
+  selector:
+    matchLabels:
+      app: hadoophdfsyarn-namenode-resourcemanager
+  serviceName: "hadoophdfsyarn-namenode-resourcemanager"
+  replicas: 1
+  minReadySeconds: 600
+  template:
+    metadata:
+      labels:
+        app: hadoophdfsyarn-namenode-resourcemanager
+    spec:
+      terminationGracePeriodSeconds: 120
+      initContainers:
+      - name: hadoop-mkdir
+        image: bde2020/hadoop-namenode:2.0.0-hadoop3.1.3-java8
+        command: ['sh', '-c', 'mkdir -p /opt/hadoop-3.1.3/dfs/name']
+        volumeMounts:           
+          - mountPath: /opt/hadoop-3.1.3/dfs/name
+            name: workdir
+      volumes:
+      - name: workdir
+        emptyDir: {}
+      containers:
+      - image: bde2020/hadoop-namenode:2.0.0-hadoop3.1.3-java8
+        name: hadoop-namenode
+        resources:
+           requests:
+            memory: "3Gi"
+           limits:
+            memory: "3Gi"
+        ports:
+        - containerPort: 8020
+          name: namenode-port
+        - containerPort: 9870
+          name: namenode-ui
+        env:
+        - name: HDFS_CONF_dfs_namenode_name_dir
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: dfs_namenode_name_dir
+        - name: HDFS_CONF_dfs_datanode_use_datanode_hostname
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: dfs_datanode_use_datanode_hostname
+        - name: HDFS_CONF_dfs_permissions_enabled
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: dfs_permission
+        - name: HDFS_CONF_dfs_namenode_rpc___bind___host
+          valueFrom:
+            fieldRef:
+                fieldPath: status.podIP
+        - name: HDFS_CONF_dfs_namenode_servicerpc___bind___host
+          valueFrom:
+            fieldRef:
+                fieldPath: status.podIP
+        - name: HDFS_CONF_dfs_namenode_http___bind___host
+          valueFrom:
+            fieldRef:
+                fieldPath: status.podIP
+        - name: HDFS_CONF_dfs_namenode_https___bind___host
+          valueFrom:
+            fieldRef:
+                fieldPath: status.podIP    
+        - name: CORE_CONF_fs_defaultFS
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: namenode_bind_url
+        - name: CORE_CONF_hadoop_tmp_dir
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: hadoop_tmp_dir
+        - name: CLUSTER_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: hadoop_cluster_name        
+        volumeMounts:
+            - mountPath: /dataset1
+              name: hadoop-dataset-namenode
+            - mountPath: /opt/hadoop-3.1.3/dfs/name
+              name: workdir
+      - image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.1.3-java8
+        name: hadoop-resourcemanager
+        resources:
+           requests:
+            memory: "2Gi"
+           limits:
+            memory: "2Gi"
+        ports:
+        - containerPort: 8032
+          name: rm-protocol
+        - containerPort: 8031
+          name: rm-track
+        - containerPort: 8088
+          name: rm-ui
+        env:
+        - name: YARN_CONF_yarn_nodemanager_aux___services
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: yarn_nodemanager_aux___services
+        - name: YARN_CONF_yarn_resourcemanager_webapp_address
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: yarn_resourcemanager_webapp_address
+        - name: YARN_CONF_mapreduce_framework_name
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: mapreduce_framework_name
+        - name: YARN_CONF_yarn_application_classpath
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: yarn_application_classpath
+        - name: YARN_CONF_yarn_resourcemanager_hostname
+          valueFrom:
+            fieldRef:
+                fieldPath: status.podIP
+        - name: YARN_CONF_yarn_resourcemanager_address
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: yarn_resourcemanager_address
+        - name: YARN_CONF_yarn_resourcemanager_bind___host
+          valueFrom:
+            fieldRef:
+                fieldPath: status.podIP
+        - name: YARN_CONF_yarn_nodemanager_vmem___check___enabled
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: yarn_nodemanager_vmem___check___enabled
+        - name: YARN_CONF_yarn_nodemanager_vmem___check___enabled
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: yarn_nodemanager_vmem___pmem___ratio
+        - name: MAPRED_CONF_mapreduce_map_java_opts
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: mapreduce_map_java_opts
+        - name: MAPRED_CONF_mapreduce_reduce_java_opts
+          valueFrom:
+            configMapKeyRef:
+              name: hadoop-configmap
+              key: mapreduce_reduce_java_opts
+  volumeClaimTemplates:
+  - metadata:
+      name: hadoop-dataset-namenode
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: ""
+      resources:
+        requests:
+          storage: 1Gi
 ---
